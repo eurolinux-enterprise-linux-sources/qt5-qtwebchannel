@@ -4,24 +4,17 @@
 
 Summary: Qt5 - WebChannel component
 Name:    qt5-%{qt_module}
-Version: 5.6.2
+Version: 5.9.2
 Release: 1%{?dist}
 
 # See LICENSE.GPL LICENSE.LGPL LGPL_EXCEPTION.txt, for details
-# See also http://doc.qt.io/qt-5/licensing.html
 License: LGPLv2 with exceptions or GPLv3 with exceptions
 Url: http://qt.io
-Source0: http://download.qt.io/official_releases/qt/5.6/%{version}/submodules/%{qt_module}-opensource-src-%{version}.tar.xz
+Source0: http://download.qt.io/official_releases/qt/5.9/%{version}/submodules/%{qt_module}-opensource-src-%{version}.tar.xz
 
-BuildRequires: cmake
 BuildRequires: qt5-qtbase-devel >= %{version}
-BuildRequires: qt5-qtdeclarative-devel >= %{version}
-# Qt5WebSockets package is optional and only needed for some examples
+BuildRequires: qt5-qtdeclarative-devel
 BuildRequires: qt5-qtwebsockets-devel
-
-BuildRequires: qt5-qtbase-private-devel
-
-%{?_qt5:Requires: %{_qt5}%{?_isa} = %{_qt5_version}}
 
 %description
 The Qt WebChannel module provides a library for seamless integration of C++
@@ -59,9 +52,7 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 
 
 %build
-mkdir %{_target_platform}
-pushd %{_target_platform}
-%{qmake_qt5} ..
+%{qmake_qt5}
 
 make %{?_smp_mflags}
 
@@ -71,14 +62,13 @@ make %{?_smp_mflags}
 QT_HASH_SEED=0; export QT_HASH_SEED
 make %{?_smp_mflags} docs
 %endif
-popd
 
 
 %install
-make install INSTALL_ROOT=%{buildroot} -C %{_target_platform}
+make install INSTALL_ROOT=%{buildroot}
 
 %if 0%{?docs}
-make install_docs INSTALL_ROOT=%{buildroot} -C %{_target_platform}
+make install_docs INSTALL_ROOT=%{buildroot}
 %endif
 
 ## .prl/.la file love
@@ -125,6 +115,14 @@ popd
 
 
 %changelog
+* Fri Oct 06 2017 Jan Grulich <jgrulich@redhat.com> - 5.9.2-1
+- Update to 5.9.2
+  Resolves: bz#1482792
+
+* Mon Aug 28 2017 Jan Grulich <jgrulich@redhat.com> - 5.9.1-1
+- Update to 5.9.1
+  Resolves: bz#1482792
+
 * Wed Jan 11 2017 Jan Grulich <jgrulich@redhat.com> - 5.6.2-1
 - Update to 5.6.2
   Resolves: bz#1384832

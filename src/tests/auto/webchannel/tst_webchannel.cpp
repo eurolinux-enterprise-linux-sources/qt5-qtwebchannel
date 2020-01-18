@@ -1,31 +1,26 @@
 /****************************************************************************
 **
-** Copyright (C) 2014 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Milian Wolff <milian.wolff@kdab.com>
-** Contact: http://www.qt.io/licensing/
+** Copyright (C) 2016 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Milian Wolff <milian.wolff@kdab.com>
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtWebChannel module of the Qt Toolkit.
 **
-** $QT_BEGIN_LICENSE:LGPL21$
+** $QT_BEGIN_LICENSE:GPL-EXCEPT$
 ** Commercial License Usage
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
 ** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see http://www.qt.io/terms-conditions. For further
-** information use the contact form at http://www.qt.io/contact-us.
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
 **
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 2.1 or version 3 as published by the Free
-** Software Foundation and appearing in the file LICENSE.LGPLv21 and
-** LICENSE.LGPLv3 included in the packaging of this file. Please review the
-** following information to ensure the GNU Lesser General Public License
-** requirements will be met: https://www.gnu.org/licenses/lgpl.html and
-** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
-**
-** As a special exception, The Qt Company gives you certain additional
-** rights. These rights are described in The Qt Company LGPL Exception
-** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License version 3 as published by the Free Software
+** Foundation with exceptions as appearing in the file LICENSE.GPL3-EXCEPT
+** included in the packaging of this file. Please review the following
+** information to ensure the GNU General Public License requirements will
+** be met: https://www.gnu.org/licenses/gpl-3.0.html.
 **
 ** $QT_END_LICENSE$
 **
@@ -317,6 +312,21 @@ void TestWebChannel::testDeregisterObjects()
     emit testObject.sig1();
 }
 
+void TestWebChannel::testDeregisterObjectAtStart()
+{
+    QWebChannel channel;
+    QVERIFY(channel.registeredObjects().isEmpty());
+
+    TestObject testObject;
+    testObject.setObjectName("myTestObject");
+
+    channel.registerObject(testObject.objectName(), &testObject);
+    QCOMPARE(channel.registeredObjects().size(), 1);
+
+    channel.deregisterObject(&testObject);
+    QVERIFY(channel.registeredObjects().isEmpty());
+}
+
 void TestWebChannel::testInfoForObject()
 {
     TestObject obj;
@@ -370,6 +380,18 @@ void TestWebChannel::testInfoForObject()
         }
         {
             QJsonArray method;
+            method.append(QStringLiteral("setProp"));
+            method.append(obj.metaObject()->indexOfMethod("setProp(QString)"));
+            expected.append(method);
+        }
+        {
+            QJsonArray method;
+            method.append(QStringLiteral("fire"));
+            method.append(obj.metaObject()->indexOfMethod("fire()"));
+            expected.append(method);
+        }
+        {
+            QJsonArray method;
             method.append(QStringLiteral("method1"));
             method.append(obj.metaObject()->indexOfMethod("method1()"));
             expected.append(method);
@@ -395,6 +417,12 @@ void TestWebChannel::testInfoForObject()
             QJsonArray signal;
             signal.append(QStringLiteral("sig2"));
             signal.append(obj.metaObject()->indexOfMethod("sig2(QString)"));
+            expected.append(signal);
+        }
+        {
+            QJsonArray signal;
+            signal.append(QStringLiteral("replay"));
+            signal.append(obj.metaObject()->indexOfMethod("replay()"));
             expected.append(signal);
         }
         QCOMPARE(info["signals"].toArray(), expected);
@@ -478,6 +506,19 @@ void TestWebChannel::testInfoForObject()
             property.append(QJsonValue::fromVariant(QVariant::fromValue(obj.returnedObject())));
             expected.append(property);
         }
+        {
+            QJsonArray property;
+            property.append(obj.metaObject()->indexOfProperty("prop"));
+            property.append(QStringLiteral("prop"));
+            {
+                QJsonArray signal;
+                signal.append(1);
+                signal.append(obj.metaObject()->indexOfMethod("propChanged(QString)"));
+                property.append(signal);
+            }
+            property.append(QJsonValue::fromVariant(QVariant::fromValue(obj.prop())));
+            expected.append(property);
+        }
         QCOMPARE(info["properties"].toArray(), expected);
     }
 }
@@ -495,6 +536,10 @@ void TestWebChannel::testInvokeMethodConversion()
         QVERIFY(method != -1);
         channel.d_func()->publisher->invokeMethod(this, method, args);
         QCOMPARE(m_lastInt, args.at(0).toInt());
+        int getterMethod = metaObject()->indexOfMethod("readInt()");
+        QVERIFY(getterMethod != -1);
+        auto retVal = channel.d_func()->publisher->invokeMethod(this, getterMethod, {});
+        QCOMPARE(retVal, args.at(0).toVariant());
     }
     {
         int method = metaObject()->indexOfMethod("setBool(bool)");
@@ -503,24 +548,40 @@ void TestWebChannel::testInvokeMethodConversion()
         args.append(QJsonValue(!m_lastBool));
         channel.d_func()->publisher->invokeMethod(this, method, args);
         QCOMPARE(m_lastBool, args.at(0).toBool());
+        int getterMethod = metaObject()->indexOfMethod("readBool()");
+        QVERIFY(getterMethod != -1);
+        auto retVal = channel.d_func()->publisher->invokeMethod(this, getterMethod, {});
+        QCOMPARE(retVal, args.at(0).toVariant());
     }
     {
         int method = metaObject()->indexOfMethod("setDouble(double)");
         QVERIFY(method != -1);
         channel.d_func()->publisher->invokeMethod(this, method, args);
         QCOMPARE(m_lastDouble, args.at(0).toDouble());
+        int getterMethod = metaObject()->indexOfMethod("readDouble()");
+        QVERIFY(getterMethod != -1);
+        auto retVal = channel.d_func()->publisher->invokeMethod(this, getterMethod, {});
+        QCOMPARE(retVal, args.at(0).toVariant());
     }
     {
         int method = metaObject()->indexOfMethod("setVariant(QVariant)");
         QVERIFY(method != -1);
         channel.d_func()->publisher->invokeMethod(this, method, args);
         QCOMPARE(m_lastVariant, args.at(0).toVariant());
+        int getterMethod = metaObject()->indexOfMethod("readVariant()");
+        QVERIFY(getterMethod != -1);
+        auto retVal = channel.d_func()->publisher->invokeMethod(this, getterMethod, {});
+        QCOMPARE(retVal, args.at(0).toVariant());
     }
     {
         int method = metaObject()->indexOfMethod("setJsonValue(QJsonValue)");
         QVERIFY(method != -1);
         channel.d_func()->publisher->invokeMethod(this, method, args);
         QCOMPARE(m_lastJsonValue, args.at(0));
+        int getterMethod = metaObject()->indexOfMethod("readJsonValue()");
+        QVERIFY(getterMethod != -1);
+        auto retVal = channel.d_func()->publisher->invokeMethod(this, getterMethod, {});
+        QCOMPARE(retVal, args.at(0).toVariant());
     }
     {
         int method = metaObject()->indexOfMethod("setJsonObject(QJsonObject)");
@@ -531,16 +592,24 @@ void TestWebChannel::testInvokeMethodConversion()
         args[0] = object;
         channel.d_func()->publisher->invokeMethod(this, method, args);
         QCOMPARE(m_lastJsonObject, object);
+        int getterMethod = metaObject()->indexOfMethod("readJsonObject()");
+        QVERIFY(getterMethod != -1);
+        auto retVal = channel.d_func()->publisher->invokeMethod(this, getterMethod, {});
+        QCOMPARE(retVal, QVariant::fromValue(object));
     }
     {
-        int method = metaObject()->indexOfMethod("setJsonArray(QJsonArray)");
-        QVERIFY(method != -1);
+        int setterMethod = metaObject()->indexOfMethod("setJsonArray(QJsonArray)");
+        QVERIFY(setterMethod != -1);
         QJsonArray array;
         array << QJsonValue(123);
         array <<  QJsonValue(4.2);
         args[0] = array;
-        channel.d_func()->publisher->invokeMethod(this, method, args);
+        channel.d_func()->publisher->invokeMethod(this, setterMethod, args);
         QCOMPARE(m_lastJsonArray, array);
+        int getterMethod = metaObject()->indexOfMethod("readJsonArray()");
+        QVERIFY(getterMethod != -1);
+        auto retVal = channel.d_func()->publisher->invokeMethod(this, getterMethod, {});
+        QCOMPARE(retVal, QVariant::fromValue(array));
     }
 }
 
@@ -699,6 +768,52 @@ void TestWebChannel::testInfiniteRecursion()
     QJsonObject objectInfo = channel.d_func()->publisher->wrapResult(QVariant::fromValue(&obj), m_dummyTransport).toObject();
 }
 
+void TestWebChannel::testAsyncObject()
+{
+    QWebChannel channel;
+    channel.connectTo(m_dummyTransport);
+
+    QThread thread;
+    thread.start();
+
+    TestObject obj;
+    obj.moveToThread(&thread);
+
+    QJsonArray args;
+    args.append(QJsonValue("message"));
+
+    int method = obj.metaObject()->indexOfMethod("setProp(QString)");
+    QVERIFY(method != -1);
+
+    {
+        QSignalSpy spy(&obj, &TestObject::propChanged);
+        channel.d_func()->publisher->invokeMethod(&obj, method, args);
+        QVERIFY(spy.wait());
+        QCOMPARE(spy.at(0).at(0).toString(), args.at(0).toString());
+    }
+
+    channel.registerObject("myObj", &obj);
+    channel.d_func()->publisher->initializeClient(m_dummyTransport);
+
+    QJsonObject connectMessage;
+    connectMessage["type"] = 7;
+    connectMessage["object"] = "myObj";
+    connectMessage["signal"] = obj.metaObject()->indexOfSignal("replay()");
+    channel.d_func()->publisher->handleMessage(connectMessage, m_dummyTransport);
+
+    {
+        QSignalSpy spy(&obj, &TestObject::replay);
+        QMetaObject::invokeMethod(&obj, "fire");
+        QVERIFY(spy.wait());
+        channel.deregisterObject(&obj);
+        QMetaObject::invokeMethod(&obj, "fire");
+        QVERIFY(spy.wait());
+    }
+
+    thread.quit();
+    thread.wait();
+}
+
 static QHash<QString, QObject*> createObjects(QObject *parent)
 {
     const int num = 100;
@@ -805,7 +920,7 @@ void TestWebChannel::benchRemoveTransport()
     }
 
     QBENCHMARK_ONCE {
-        foreach (DummyTransport *transport, dummyTransports)
+        for (auto transport : dummyTransports)
             pub->transportRemoved(transport);
     }
 

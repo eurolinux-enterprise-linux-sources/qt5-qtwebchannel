@@ -1,31 +1,26 @@
 /****************************************************************************
 **
-** Copyright (C) 2014 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Milian Wolff <milian.wolff@kdab.com>
-** Contact: http://www.qt.io/licensing/
+** Copyright (C) 2016 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Milian Wolff <milian.wolff@kdab.com>
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtWebChannel module of the Qt Toolkit.
 **
-** $QT_BEGIN_LICENSE:LGPL21$
+** $QT_BEGIN_LICENSE:GPL-EXCEPT$
 ** Commercial License Usage
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
 ** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see http://www.qt.io/terms-conditions. For further
-** information use the contact form at http://www.qt.io/contact-us.
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
 **
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 2.1 or version 3 as published by the Free
-** Software Foundation and appearing in the file LICENSE.LGPLv21 and
-** LICENSE.LGPLv3 included in the packaging of this file. Please review the
-** following information to ensure the GNU Lesser General Public License
-** requirements will be met: https://www.gnu.org/licenses/lgpl.html and
-** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
-**
-** As a special exception, The Qt Company gives you certain additional
-** rights. These rights are described in The Qt Company LGPL Exception
-** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License version 3 as published by the Free Software
+** Foundation with exceptions as appearing in the file LICENSE.GPL3-EXCEPT
+** included in the packaging of this file. Please review the following
+** information to ensure the GNU General Public License requirements will
+** be met: https://www.gnu.org/licenses/gpl-3.0.html.
 **
 ** $QT_END_LICENSE$
 **
@@ -74,6 +69,7 @@ class TestObject : public QObject
     Q_PROPERTY(QString bar READ bar NOTIFY theBarHasChanged)
     Q_PROPERTY(QObject * objectProperty READ objectProperty WRITE setObjectProperty NOTIFY objectPropertyChanged)
     Q_PROPERTY(TestObject * returnedObject READ returnedObject WRITE setReturnedObject NOTIFY returnedObjectChanged)
+    Q_PROPERTY(QString prop READ prop WRITE setProp NOTIFY propChanged)
 
 public:
     explicit TestObject(QObject *parent = 0)
@@ -101,6 +97,11 @@ public:
         return mReturnedObject;
     }
 
+    QString prop() const
+    {
+        return mProp;
+    }
+
     Q_INVOKABLE void method1() {}
 
 protected:
@@ -116,6 +117,8 @@ signals:
     void theBarHasChanged();
     void objectPropertyChanged();
     void returnedObjectChanged();
+    void propChanged(const QString&);
+    void replay();
 
 public slots:
     void slot1() {}
@@ -133,6 +136,9 @@ public slots:
         emit objectPropertyChanged();
     }
 
+    void setProp(const QString&prop) {emit propChanged(mProp=prop);}
+    void fire() {emit replay();}
+
 protected slots:
     void slot3() {}
 
@@ -142,6 +148,7 @@ private slots:
 public:
     QObject *mObjectProperty;
     TestObject *mReturnedObject;
+    QString mProp;
 };
 
 class BenchObject : public QObject
@@ -251,20 +258,21 @@ public:
     explicit TestWebChannel(QObject *parent = 0);
     virtual ~TestWebChannel();
 
+public slots:
     int readInt() const;
-    Q_INVOKABLE void setInt(int i);
+    void setInt(int i);
     bool readBool() const;
-    Q_INVOKABLE void setBool(bool b);
+    void setBool(bool b);
     double readDouble() const;
-    Q_INVOKABLE void setDouble(double d);
+    void setDouble(double d);
     QVariant readVariant() const;
-    Q_INVOKABLE void setVariant(const QVariant &v);
+    void setVariant(const QVariant &v);
     QJsonValue readJsonValue() const;
-    Q_INVOKABLE void setJsonValue(const QJsonValue &v);
+    void setJsonValue(const QJsonValue &v);
     QJsonObject readJsonObject() const;
-    Q_INVOKABLE void setJsonObject(const QJsonObject &v);
+    void setJsonObject(const QJsonObject &v);
     QJsonArray readJsonArray() const;
-    Q_INVOKABLE void setJsonArray(const QJsonArray &v);
+    void setJsonArray(const QJsonArray &v);
 
 signals:
     void lastIntChanged();
@@ -278,6 +286,7 @@ signals:
 private slots:
     void testRegisterObjects();
     void testDeregisterObjects();
+    void testDeregisterObjectAtStart();
     void testInfoForObject();
     void testInvokeMethodConversion();
     void testSetPropertyConversion();
@@ -286,6 +295,7 @@ private slots:
     void testRemoveUnusedTransports();
     void testPassWrappedObjectBack();
     void testInfiniteRecursion();
+    void testAsyncObject();
 
     void benchClassInfo();
     void benchInitializeClients();
