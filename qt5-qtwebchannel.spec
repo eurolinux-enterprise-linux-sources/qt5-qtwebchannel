@@ -2,25 +2,24 @@
 
 %define docs 1
 
-#define prerelease
-
 Summary: Qt5 - WebChannel component
 Name:    qt5-%{qt_module}
-Version: 5.6.1
-Release: 10%{?prerelease:.%{prerelease}}%{?dist}
+Version: 5.6.2
+Release: 1%{?dist}
 
 # See LICENSE.GPL LICENSE.LGPL LGPL_EXCEPTION.txt, for details
 # See also http://doc.qt.io/qt-5/licensing.html
 License: LGPLv2 with exceptions or GPLv3 with exceptions
 Url: http://qt.io
-Source0: http://download.qt.io/snapshots/qt/5.6/%{version}%{?prerelease:-%{prerelease}}/submodules/%{qt_module}-opensource-src-%{version}%{?prerelease:-%{prerelease}}.tar.xz
+Source0: http://download.qt.io/official_releases/qt/5.6/%{version}/submodules/%{qt_module}-opensource-src-%{version}.tar.xz
 
 BuildRequires: cmake
 BuildRequires: qt5-qtbase-devel >= %{version}
-BuildRequires: pkgconfig(Qt5Core)
-BuildRequires: pkgconfig(Qt5Quick)
+BuildRequires: qt5-qtdeclarative-devel >= %{version}
 # Qt5WebSockets package is optional and only needed for some examples
-BuildRequires: pkgconfig(Qt5WebSockets)
+BuildRequires: qt5-qtwebsockets-devel
+
+BuildRequires: qt5-qtbase-private-devel
 
 %{?_qt5:Requires: %{_qt5}%{?_isa} = %{_qt5_version}}
 
@@ -56,7 +55,7 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 
 
 %prep
-%setup -q -n %{qt_module}-opensource-src-%{version}%{?prerelease:-%{prerelease}}
+%setup -q -n %{qt_module}-opensource-src-%{version}
 
 
 %build
@@ -126,6 +125,10 @@ popd
 
 
 %changelog
+* Wed Jan 11 2017 Jan Grulich <jgrulich@redhat.com> - 5.6.2-1
+- Update to 5.6.2
+  Resolves: bz#1384832
+
 * Tue Aug 30 2016 Jan Grulich <jgrulich@redhat.com> - 5.6.1-10
 - Increase build version to have newer version than in EPEL
   Resolves: bz#1317416
