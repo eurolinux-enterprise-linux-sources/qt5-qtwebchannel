@@ -4,7 +4,7 @@
 
 Summary: Qt5 - WebChannel component
 Name:    qt5-%{qt_module}
-Version: 5.9.2
+Version: 5.9.7
 Release: 1%{?dist}
 
 # See LICENSE.GPL LICENSE.LGPL LGPL_EXCEPTION.txt, for details
@@ -115,6 +115,10 @@ popd
 
 
 %changelog
+* Thu Feb 07 2019 Jan Grulich <jgrulich@redhat.com> - 5.9.7-1
+- Update to 5.9.7
+  Resolves: bz#1564020
+
 * Fri Oct 06 2017 Jan Grulich <jgrulich@redhat.com> - 5.9.2-1
 - Update to 5.9.2
   Resolves: bz#1482792
